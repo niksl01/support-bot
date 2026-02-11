@@ -89,12 +89,12 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     const waitRoom = newState.guild.channels.cache.get(config.waitRoom);
     if (!waitRoom) return;
 
-    // Musik starten, wenn jemand in den Wartebereich kommt
+    // Musik starten
     if (newState.channelId === config.waitRoom && !newState.member.user.bot) {
         await startMusic(newState.channel);
     }
 
-    // Musik stoppen, wenn niemand mehr im Wartebereich
+    // Musik stoppen
     if (waitRoom.members.filter(m => !m.user.bot).size === 0) {
         stopMusic();
     }
@@ -138,8 +138,9 @@ client.on("interactionCreate", async interaction => {
     if (!target) return interaction.reply({ content: "User nicht mehr da.", ephemeral: true });
 
     if (action === "take") {
-        if (!member.voice.channel)
+        if (!member.voice.channel) {
             return interaction.reply({ content: "Du bist in keinem Voicechannel.", ephemeral: true });
+        }
 
         await target.voice.setChannel(member.voice.channel);
 
@@ -149,9 +150,7 @@ client.on("interactionCreate", async interaction => {
             .setColor("Green");
 
         await interaction.update({ embeds: [embed], components: [] });
-    }
-
-    if (action === "close") {
+    } else if (action === "close") {
         const embed = new EmbedBuilder()
             .setTitle("✅ Abgeschlossen")
             .setDescription(`Geschlossen von <@${member.id}>`)
@@ -162,9 +161,7 @@ client.on("interactionCreate", async interaction => {
 });
 
 // === READY EVENT ===
-client.once("ready", () => {
-    console.log(`Bot online als ${client.user.tag}`);
-});
+client.once("ready", () => console.log(`Bot online als ${client.user.tag}`));
 
 // === LOGIN MIT DIREKTEM TOKEN ===
 const BOT_TOKEN = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GU_baw.U0WAeOddQ2Ctk70kjrVx6Qy8zTcCtK8kW1-6XQ"; // <-- Token direkt hier eintragen
@@ -172,6 +169,3 @@ client.login(BOT_TOKEN).catch(err => {
     console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
     process.exit(1);
 });
-
-});
-

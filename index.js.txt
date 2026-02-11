@@ -3,6 +3,7 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
+config.token = process.env.TOKEN;
 
 const client = new Client({
     intents: [
@@ -124,3 +125,4 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 
 client.once("ready", () => console.log("Bot online"));
 client.login(config.token);
+

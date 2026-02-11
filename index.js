@@ -122,7 +122,21 @@ client.on("voiceStateUpdate", (oldState, newState) => {
         stopMusic();
 });
 
-client.once("ready", () => console.log("Bot online"));
+// === Ende deiner Event-Handler ===
+client.once("ready", () => {
+    console.log(`Bot online als ${client.user.tag}`);
+});
 
-// Der Token kommt aus Railway Environment Variables
-client.login(process.env.BOT_TOKEN);
+// LOGIN DES BOTS über Railway Environment Variable
+const botToken = process.env.BOT_TOKEN;
+
+if (!botToken || botToken.length === 0) {
+    console.error("FEHLER: BOT_TOKEN ist leer! Bitte in Railway Settings setzen.");
+    process.exit(1); // Stoppt den Bot, wenn kein Token vorhanden ist
+}
+
+client.login(botToken).catch(err => {
+    console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
+    process.exit(1);
+});
+

@@ -1,10 +1,28 @@
-const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const { 
+    Client, 
+    GatewayIntentBits, 
+    Partials, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    EmbedBuilder 
+} = require('discord.js');
+
+const { 
+    joinVoiceChannel, 
+    createAudioPlayer, 
+    createAudioResource, 
+    AudioPlayerStatus, 
+    NoSubscriberBehavior, 
+    entersState, 
+    VoiceConnectionStatus 
+} = require('@discordjs/voice');
+
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
-// === CLIENT ===
+// === CLIENT SETUP ===
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -33,16 +51,13 @@ async function startMusic(channel) {
     try {
         await entersState(connection, VoiceConnectionStatus.Ready, 15000);
     } catch (err) {
-        console.log("Fehler beim Verbinden:", err);
+        console.error("Fehler beim Verbinden:", err);
         connection.destroy();
         connection = null;
         return;
     }
 
-    player = createAudioPlayer({
-        behaviors: { noSubscriber: NoSubscriberBehavior.Play }
-    });
-
+    player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     connection.subscribe(player);
 
     const filePath = path.join(__dirname, "support.mp3");
@@ -56,25 +71,25 @@ async function startMusic(channel) {
         player.play(resource);
     };
 
-    playAudio();
     player.on(AudioPlayerStatus.Idle, playAudio);
-    player.on('error', e => console.log("AudioPlayer Fehler:", e.message));
+    player.on('error', e => console.error("AudioPlayer Fehler:", e.message));
+    playAudio();
 }
 
 // === MUSIK STOPPEN ===
 function stopMusic() {
     if (!connection) return;
-    player.stop();
+    if (player) player.stop();
     connection.destroy();
     connection = null;
 }
 
-// === VOICESTATEUPDATE (Musik + Supportfall) ===
+// === VOICESTATEUPDATE ===
 client.on("voiceStateUpdate", async (oldState, newState) => {
     const waitRoom = newState.guild.channels.cache.get(config.waitRoom);
     if (!waitRoom) return;
 
-    // Musik starten, wenn User in Wartebereich kommt
+    // Musik starten, wenn jemand in den Wartebereich kommt
     if (newState.channelId === config.waitRoom && !newState.member.user.bot) {
         await startMusic(newState.channel);
     }
@@ -84,10 +99,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         stopMusic();
     }
 
-    // Support-Fall erstellen
+    // Supportfall erstellen
     if (!newState.channelId || newState.channelId !== config.waitRoom || newState.member.user.bot) return;
 
-    const text = await client.channels.fetch(config.textChannel);
+    const textChannel = await client.channels.fetch(config.textChannel);
     const embed = new EmbedBuilder()
         .setTitle("🆘 Neuer Supportfall")
         .setDescription(`User: <@${newState.member.id}>\nStatus: Wartet auf Support`)
@@ -104,7 +119,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
             .setStyle(ButtonStyle.Danger)
     );
 
-    const msg = await text.send({ embeds: [embed], components: [row] });
+    const msg = await textChannel.send({ embeds: [embed], components: [row] });
     activeCases.set(newState.member.id, { message: msg });
 });
 
@@ -115,8 +130,9 @@ client.on("interactionCreate", async interaction => {
     const [action, userId] = interaction.customId.split("_");
     const member = await interaction.guild.members.fetch(interaction.user.id);
 
-    if (!member.roles.cache.has(config.supportRole))
+    if (!member.roles.cache.has(config.supportRole)) {
         return interaction.reply({ content: "Keine Berechtigung.", ephemeral: true });
+    }
 
     const target = await interaction.guild.members.fetch(userId).catch(() => null);
     if (!target) return interaction.reply({ content: "User nicht mehr da.", ephemeral: true });
@@ -146,13 +162,16 @@ client.on("interactionCreate", async interaction => {
 });
 
 // === READY EVENT ===
-client.once("ready", () => console.log(`Bot online als ${client.user.tag}`));
+client.once("ready", () => {
+    console.log(`Bot online als ${client.user.tag}`);
+});
 
-// === LOGIN ===
-// Hier dein Token direkt einfügen:
-const BOT_TOKEN = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GU_baw.U0WAeOddQ2Ctk70kjrVx6Qy8zTcCtK8kW1-6XQ";
-
+// === LOGIN MIT DIREKTEM TOKEN ===
+const BOT_TOKEN = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GU_baw.U0WAeOddQ2Ctk70kjrVx6Qy8zTcCtK8kW1-6XQ"; // <-- Token direkt hier eintragen
 client.login(BOT_TOKEN).catch(err => {
     console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
     process.exit(1);
 });
+
+});
+

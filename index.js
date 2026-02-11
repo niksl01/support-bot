@@ -122,5 +122,7 @@ client.on("voiceStateUpdate", (oldState, newState) => {
         stopMusic();
 });
 
-client.login(process.env.BOT_TOKEN);
+client.once("ready", () => console.log("Bot online"));
 
+// Der Token kommt aus Railway Environment Variables
+client.login(process.env.BOT_TOKEN);

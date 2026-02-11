@@ -122,8 +122,5 @@ client.on("voiceStateUpdate", (oldState, newState) => {
         stopMusic();
 });
 
-client.once("ready", () => console.log("Bot online"));
-
-// Login über Railway Environment Variable
 client.login(process.env.BOT_TOKEN);
 

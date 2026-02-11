@@ -1,9 +1,10 @@
 const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior } = require('@discordjs/voice');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
+// === Client Setup ===
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -17,6 +18,7 @@ const activeCases = new Map();
 let connection = null;
 let player = null;
 
+// === Musik starten ===
 function startMusic(channel) {
     if (connection) return;
 
@@ -42,12 +44,14 @@ function startMusic(channel) {
     playLoop();
 }
 
+// === Musik stoppen ===
 function stopMusic() {
     if (!connection) return;
     connection.destroy();
     connection = null;
 }
 
+// === VoiceStateUpdate für Warteschlange ===
 client.on("voiceStateUpdate", async (oldState, newState) => {
     if (!newState.channelId || newState.channelId !== config.waitRoom) return;
     if (newState.member.user.bot) return;
@@ -78,6 +82,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     activeCases.set(newState.member.id, { message: msg });
 });
 
+// === Interaction für Buttons ===
 client.on("interactionCreate", async interaction => {
     if (!interaction.isButton()) return;
 
@@ -114,6 +119,7 @@ client.on("interactionCreate", async interaction => {
     }
 });
 
+// === VoiceStateUpdate für Musik-Stopp ===
 client.on("voiceStateUpdate", (oldState, newState) => {
     const channel = oldState.guild.channels.cache.get(config.waitRoom);
     if (!channel) return;
@@ -122,29 +128,16 @@ client.on("voiceStateUpdate", (oldState, newState) => {
         stopMusic();
 });
 
-// === Ende deiner Event-Handler ===
+// === Ready Event ===
 client.once("ready", () => {
     console.log(`Bot online als ${client.user.tag}`);
 });
 
-// LOGIN DES BOTS über Railway Environment Variable
-const botToken = process.env.BOT_TOKEN;
-
-if (!botToken || botToken.length === 0) {
-    console.error("FEHLER: BOT_TOKEN ist leer! Bitte in Railway Settings setzen.");
-    process.exit(1); // Stoppt den Bot, wenn kein Token vorhanden ist
-}
-
-client.once("ready", () => {
-    console.log(`Bot online als ${client.user.tag}`);
-});
-
-// Direkt den Token einfügen
-const botToken = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GpHZ4K.8Q8gIYHxeRYUIdKNctxKxepmuQRRPDW_JgaTpo";
-
-client.login(botToken).catch(err => {
-    console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
-    process.exit(1);
-});
+// === LOGIN: Direkt in JS eingetragener Token ===
+client.login("MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GR5GGE.H4FtK3NsQe7Z0iIL8avfkhWhq7wIW6_nfkLBkY")
+    .catch(err => {
+        console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
+        process.exit(1);
+    });
 
 

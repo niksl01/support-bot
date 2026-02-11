@@ -135,8 +135,16 @@ if (!botToken || botToken.length === 0) {
     process.exit(1); // Stoppt den Bot, wenn kein Token vorhanden ist
 }
 
+client.once("ready", () => {
+    console.log(`Bot online als ${client.user.tag}`);
+});
+
+// Direkt den Token einfügen
+const botToken = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GpHZ4K.8Q8gIYHxeRYUIdKNctxKxepmuQRRPDW_JgaTpo";
+
 client.login(botToken).catch(err => {
     console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
     process.exit(1);
 });
+
 

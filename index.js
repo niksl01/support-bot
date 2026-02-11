@@ -1,10 +1,10 @@
 const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
-// === Client Setup ===
+// === CLIENT ===
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -14,12 +14,13 @@ const client = new Client({
     partials: [Partials.Channel]
 });
 
+// === GLOBALS ===
 const activeCases = new Map();
 let connection = null;
 let player = null;
 
-// === Musik starten ===
-function startMusic(channel) {
+// === MUSIK STARTEN ===
+async function startMusic(channel) {
     if (connection) return;
 
     connection = joinVoiceChannel({
@@ -29,38 +30,64 @@ function startMusic(channel) {
         selfDeaf: false
     });
 
+    try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 15000);
+    } catch (err) {
+        console.log("Fehler beim Verbinden:", err);
+        connection.destroy();
+        connection = null;
+        return;
+    }
+
     player = createAudioPlayer({
         behaviors: { noSubscriber: NoSubscriberBehavior.Play }
     });
 
     connection.subscribe(player);
 
-    const playLoop = () => {
-        const resource = createAudioResource(path.join(__dirname, "support.mp3"));
+    const filePath = path.join(__dirname, "support.mp3");
+    if (!fs.existsSync(filePath)) {
+        console.log("support.mp3 fehlt!");
+        return;
+    }
+
+    const playAudio = () => {
+        const resource = createAudioResource(filePath);
         player.play(resource);
     };
 
-    player.on(AudioPlayerStatus.Idle, playLoop);
-    playLoop();
+    playAudio();
+    player.on(AudioPlayerStatus.Idle, playAudio);
+    player.on('error', e => console.log("AudioPlayer Fehler:", e.message));
 }
 
-// === Musik stoppen ===
+// === MUSIK STOPPEN ===
 function stopMusic() {
     if (!connection) return;
+    player.stop();
     connection.destroy();
     connection = null;
 }
 
-// === VoiceStateUpdate für Warteschlange ===
+// === VOICESTATEUPDATE (Musik + Supportfall) ===
 client.on("voiceStateUpdate", async (oldState, newState) => {
-    if (!newState.channelId || newState.channelId !== config.waitRoom) return;
-    if (newState.member.user.bot) return;
+    const waitRoom = newState.guild.channels.cache.get(config.waitRoom);
+    if (!waitRoom) return;
 
-    const channel = newState.channel;
-    startMusic(channel);
+    // Musik starten, wenn User in Wartebereich kommt
+    if (newState.channelId === config.waitRoom && !newState.member.user.bot) {
+        await startMusic(newState.channel);
+    }
+
+    // Musik stoppen, wenn niemand mehr im Wartebereich
+    if (waitRoom.members.filter(m => !m.user.bot).size === 0) {
+        stopMusic();
+    }
+
+    // Support-Fall erstellen
+    if (!newState.channelId || newState.channelId !== config.waitRoom || newState.member.user.bot) return;
 
     const text = await client.channels.fetch(config.textChannel);
-
     const embed = new EmbedBuilder()
         .setTitle("🆘 Neuer Supportfall")
         .setDescription(`User: <@${newState.member.id}>\nStatus: Wartet auf Support`)
@@ -71,7 +98,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
             .setCustomId(`take_${newState.member.id}`)
             .setLabel("Supportfall übernehmen")
             .setStyle(ButtonStyle.Primary),
-
         new ButtonBuilder()
             .setCustomId(`close_${newState.member.id}`)
             .setLabel("Supportfall beenden")
@@ -82,7 +108,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     activeCases.set(newState.member.id, { message: msg });
 });
 
-// === Interaction für Buttons ===
+// === BUTTON INTERACTIONS ===
 client.on("interactionCreate", async interaction => {
     if (!interaction.isButton()) return;
 
@@ -119,25 +145,14 @@ client.on("interactionCreate", async interaction => {
     }
 });
 
-// === VoiceStateUpdate für Musik-Stopp ===
-client.on("voiceStateUpdate", (oldState, newState) => {
-    const channel = oldState.guild.channels.cache.get(config.waitRoom);
-    if (!channel) return;
+// === READY EVENT ===
+client.once("ready", () => console.log(`Bot online als ${client.user.tag}`));
 
-    if (channel.members.filter(m => !m.user.bot).size === 0)
-        stopMusic();
+// === LOGIN ===
+// Hier dein Token direkt einfügen:
+const BOT_TOKEN = "MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GU_baw.U0WAeOddQ2Ctk70kjrVx6Qy8zTcCtK8kW1-6XQ";
+
+client.login(BOT_TOKEN).catch(err => {
+    console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
+    process.exit(1);
 });
-
-// === Ready Event ===
-client.once("ready", () => {
-    console.log(`Bot online als ${client.user.tag}`);
-});
-
-// === LOGIN: Direkt in JS eingetragener Token ===
-client.login("MTQ3MTE4NDU2NTg3NDg1MTk2MQ.GR5GGE.H4FtK3NsQe7Z0iIL8avfkhWhq7wIW6_nfkLBkY")
-    .catch(err => {
-        console.error("FEHLER: Token ungültig oder Discord konnte nicht verbinden:", err);
-        process.exit(1);
-    });
-
-

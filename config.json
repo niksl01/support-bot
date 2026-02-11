@@ -1,5 +1,4 @@
 {
-  "token": process.env.TOKEN,
   "waitRoom": "1458120351476355297",
   "textChannel": "1458579904529436743",
   "supportRole": "1452257866860724235"

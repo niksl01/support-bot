@@ -1,3 +1,4 @@
+require("dotenv").config();
 const {
     Client,
     GatewayIntentBits,
@@ -127,3 +128,10 @@ client.once("clientReady", () => {
 
 // ===== LOGIN (Railway ENV) =====
 client.login(process.env.BOT_TOKEN);
+if (!process.env.BOT_TOKEN) {
+    console.error("❌ BOT_TOKEN fehlt in Railway Variables!");
+    process.exit(1);
+}
+
+client.login(process.env.BOT_TOKEN);
+

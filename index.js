@@ -118,4 +118,5 @@ client.on('interactionCreate', async interaction => {
   await interaction.reply({ content: `Du hast den Support übernommen!`, ephemeral: true });
 });
 
-client.login(TOKEN);
+client.login(BOT_TOKEN);
+

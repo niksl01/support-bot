@@ -118,5 +118,13 @@ client.on('interactionCreate', async interaction => {
   await interaction.reply({ content: `Du hast den Support übernommen!`, ephemeral: true });
 });
 
+const BOT_TOKEN = process.env.BOT_TOKEN; // genau der Name aus Railway
+
+if (!BOT_TOKEN) {
+  console.error("❌ Kein Bot-Token gefunden! Bitte Umgebungsvariable prüfen.");
+  process.exit(1);
+}
+
 client.login(BOT_TOKEN);
+
 

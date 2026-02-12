@@ -2,7 +2,8 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, StreamType, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const { spawn } = require('child_process');
-const sodium = require('libsodium-wrappers'); // Für Discord Voice Encryption
+const sodium = require('libsodium-wrappers');
+const ffmpegPath = require('ffmpeg-static'); // garantiert auf Railway verfügbar
 
 // ==================== EINSTELLUNGEN ====================
 const WAITING_ROOM_ID = '1458120351476355297'; // Dein Wartekanal
@@ -19,7 +20,7 @@ let player = createAudioPlayer();
 
 // ==================== WARTEMUSIK ====================
 async function playLoop() {
-  const ffmpeg = spawn('ffmpeg', [
+  const ffmpeg = spawn(ffmpegPath, [
     '-reconnect', '1',
     '-reconnect_streamed', '1',
     '-reconnect_delay_max', '5',
@@ -32,7 +33,7 @@ async function playLoop() {
     'pipe:1'
   ]);
 
-  const resource = createAudioResource(ffmpeg.stdout, { inputType: StreamType.Raw });
+  const resource = createAudioResource(ffmpeg.stdout, { inputType: StreamType.Arbitrary });
   player.play(resource);
 
   player.once(AudioPlayerStatus.Idle, () => playLoop());
